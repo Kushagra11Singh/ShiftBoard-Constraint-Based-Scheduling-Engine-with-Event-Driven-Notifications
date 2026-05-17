@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: scheduling-service
+    static_configs:
+      - targets: ['scheduling-service:8000']
+    metrics_path: /metrics
+
+  - job_name: notification-service
+    static_configs:
+      - targets: ['notification-service:8001']
+    metrics_path: /metrics
+
+  - job_name: worker-service
+    static_configs:
+      - targets: ['worker-service:8002']
+    metrics_path: /metrics
