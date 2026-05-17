@@ -7,12 +7,6 @@ from app.metrics import metrics_response
 logging.basicConfig(level=logging.INFO, format='%(levelname)s [%(name)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-# NOTE: Table creation is intentionally NOT done here.
-# In production the Dockerfile runs `alembic upgrade head` before starting uvicorn.
-# In tests conftest.py creates the schema against the test DB directly.
-# Calling Base.metadata.create_all() at import time would try to connect to
-# DATABASE_URL (which may not exist in CI), crashing pytest collection.
-
 app = FastAPI(
     title='ShiftBoard – Scheduling API',
     description='Constraint-based staff scheduling engine. Backtracking + forward-checking CSP.',

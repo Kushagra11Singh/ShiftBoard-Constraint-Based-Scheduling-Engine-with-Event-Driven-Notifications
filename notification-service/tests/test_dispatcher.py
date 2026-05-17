@@ -18,19 +18,39 @@ BASE_EVENT = {
 }
 
 
+def _counter_value(counter, **labels):
+    """Read a labelled Counter value using the stable public collect() API."""
+    for metric in counter.collect():
+        for sample in metric.samples:
+            if sample.name.endswith('_total') and all(
+                sample.labels.get(k) == v for k, v in labels.items()
+            ):
+                return sample.value
+    return 0.0
+
+
+def _histogram_count(histogram):
+    """Read a Histogram _count using the stable public collect() API."""
+    for metric in histogram.collect():
+        for sample in metric.samples:
+            if sample.name.endswith('_count'):
+                return sample.value
+    return 0.0
+
+
 def test_dispatch_shift_assigned_increments_counter():
     from app import metrics
-    before = metrics.EVENTS_CONSUMED.labels(event_type='SHIFT_ASSIGNED')._value.get()
+    before = _counter_value(metrics.EVENTS_CONSUMED, event_type='SHIFT_ASSIGNED')
     dispatch(dict(BASE_EVENT))
-    after = metrics.EVENTS_CONSUMED.labels(event_type='SHIFT_ASSIGNED')._value.get()
+    after = _counter_value(metrics.EVENTS_CONSUMED, event_type='SHIFT_ASSIGNED')
     assert after > before
 
 
 def test_dispatch_increments_notifications_sent():
     from app import metrics
-    before = metrics.NOTIFICATIONS_SENT.labels(channel='log')._value.get()
+    before = _counter_value(metrics.NOTIFICATIONS_SENT, channel='log')
     dispatch(dict(BASE_EVENT))
-    after = metrics.NOTIFICATIONS_SENT.labels(channel='log')._value.get()
+    after = _counter_value(metrics.NOTIFICATIONS_SENT, channel='log')
     assert after > before
 
 
@@ -41,17 +61,6 @@ def test_dispatch_unknown_event_type_does_not_raise():
 
 def test_dispatch_missing_fields_does_not_raise():
     dispatch({'event_type': 'SHIFT_ASSIGNED'})  # minimal event
-
-
-def _histogram_count(histogram):
-    """Return the current observation count for a Histogram using the public
-    collect() API, which is stable across all prometheus_client versions.
-    The private `_count` attribute was removed in prometheus_client >= 0.17."""
-    for metric_family in histogram.collect():
-        for sample in metric_family.samples:
-            if sample.name.endswith('_count'):
-                return sample.value
-    return 0.0
 
 
 def test_dispatch_records_processing_time():
