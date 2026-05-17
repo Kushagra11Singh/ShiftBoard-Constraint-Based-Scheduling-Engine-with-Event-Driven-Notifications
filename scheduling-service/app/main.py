@@ -1,15 +1,17 @@
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine
-from app.models import Base
 from app.routers import shifts, skills, staff
 from app.metrics import metrics_response
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s [%(name)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-Base.metadata.create_all(bind=engine)
+# NOTE: Table creation is intentionally NOT done here.
+# In production the Dockerfile runs `alembic upgrade head` before starting uvicorn.
+# In tests conftest.py creates the schema against the test DB directly.
+# Calling Base.metadata.create_all() at import time would try to connect to
+# DATABASE_URL (which may not exist in CI), crashing pytest collection.
 
 app = FastAPI(
     title='ShiftBoard – Scheduling API',

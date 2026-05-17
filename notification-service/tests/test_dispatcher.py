@@ -43,11 +43,22 @@ def test_dispatch_missing_fields_does_not_raise():
     dispatch({'event_type': 'SHIFT_ASSIGNED'})  # minimal event
 
 
+def _histogram_count(histogram):
+    """Return the current observation count for a Histogram using the public
+    collect() API, which is stable across all prometheus_client versions.
+    The private `_count` attribute was removed in prometheus_client >= 0.17."""
+    for metric_family in histogram.collect():
+        for sample in metric_family.samples:
+            if sample.name.endswith('_count'):
+                return sample.value
+    return 0.0
+
+
 def test_dispatch_records_processing_time():
     from app import metrics
-    count_before = metrics.CONSUMER_LAG_PROCESSING_SECONDS._count.get()
+    count_before = _histogram_count(metrics.CONSUMER_LAG_PROCESSING_SECONDS)
     dispatch(dict(BASE_EVENT))
-    count_after = metrics.CONSUMER_LAG_PROCESSING_SECONDS._count.get()
+    count_after = _histogram_count(metrics.CONSUMER_LAG_PROCESSING_SECONDS)
     assert count_after > count_before
 
 
